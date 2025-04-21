@@ -1,0 +1,254 @@
+---
+title: "Exploring Caribbean Maps in R"
+subtitle: The Struggle Is Real
+title-block-banner-color: "#FFDDFF"
+css: "styles.css"
+author: Martina Regis
+date: "14 April 2025"
+date-format: "MMMM YYYY"
+toc: true
+number-sections: false  
+theme: cerulean 
+format:
+  html:  
+    fig-width: 8
+    fig-height: 8
+    grid:
+      sidebar-width: 12px
+      body-width: 900px
+    code-fold: false
+    embed-resources: true
+    toc-location: right
+    toc-title: "Contents"
+    fontsize: 1.1em
+    linestretch: 1.5
+    backgroundcolor: '#ffffff'
+embed-resources: true
+brand: true 
+execute:
+  echo: false  
+  warning: false
+---
+
+```{r}
+#| label: load-pkgs
+#| code-summary: "Packages"
+#| echo: false
+#| message: false
+#| warning: false
+
+library(wbstats)    # for data
+library(tidyverse)  # for data wrangling
+library(knitr)      # for tables
+library(broom)      # for model summary
+
+my_palette2<- c(
+  "#181c5c", 
+  "#75ABFA", 
+  "#ECB100",
+  "#085006", 
+  "#FC842B",
+  "#04062C", 
+  "#75ABFA", 
+  "#387176",
+  "#e6eeff",
+  "#4E2029", 
+  "#DDEAF2",
+  "#ffffff",
+  "#FC7748",
+  "#BEA19A",
+  "#292929",
+  "#7393B3",
+  "#ebf2f5",
+  "#1F51FF"
+  )
+```
+
+![Photo credit: Scuba Diving](caribmap.jpg)
+
+
+# Mapping
+
+For what feels like an eternity, I have been wrestling with trying to visualize the Caribbean through maps in Posit - that is, capturing accurate and aesthetically-pleasing maps, with a particular focus on the member states of the Eastern Caribbean Currency Union (ECCU). My hard drive has been a graveyard of failed attempts, each  map dissolving into a mess of mismatched coastlines, misplaced islands - just not capturing the eight islands as I would like. 
+
+Countless packages and countless lines of code have been deployed in this quest, yet the desired level of detail and regional specificity consistently eluded me, leaving me navigating a sea of geospatial data with limited success.
+
+This blog post serves as a chronicle of that very struggle, a testament to the often-underappreciated intricacies of digital cartography, especially when dealing with smaller island nations. Within these digital pages, I aim to share the winding path I finally traversed to achieve a representation of the ECCU that, while not yet flawless, marks a significant step forward from my previous endeavors. It is my hope that by detailing the trials, the errors, and ultimately the partial triumphs of this mapping journey, others embarking on similar geospatial visualizations might find some practical guidance and perhaps even a bit of solace in knowing they are not alone in the occasional frustrations of rendering our beautiful, complex Caribbean islands.
+
+## Attempts Along the Way
+
+The following charts and maps represent some very rough initial attempts at visualizing the regon. Frankly, most of them fall short of being truly presentable. I would strongly caution against these initial ones. However, the last option displayed shows some potential and represents a more suitable foundation for future improvements.
+
+
+## Option 1
+
+<center>
+
+```{r}
+#| warning: false
+#| echo: false
+#| error: false
+
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggplot2)
+library(maps)
+library(mapdata)
+
+# Get Caribbean map data (you might need to install these packages: install.packages(c("maps", "mapdata")))
+caribbean <- map_data("world", region = c("Antigua and Barbuda", "Anguilla",  "Barbados", "Dominica", "Grenada", "Guadeloupe", "Martinique", "Montserrat", "Sint Maarten", "St. Kitts and Nevis", "St. Lucia", "St. Martin", "St. Vincent and the Grenadines", "Trinidad and Tobago")) # Adjust regions as needed for full Caribbean coverage
+
+# County to highlight (example: "dominica") - Make sure this name matches your data
+highlight_country <- "Dominica"
+
+# Create a new column to indicate if a country should be highlighted
+caribbean$highlight <- ifelse(caribbean$region == highlight_country, "yes", "no")
+
+# Create the map
+ggplot(caribbean) +
+  geom_map(map = caribbean, aes(map_id = region, fill = highlight), color = "black") + # Use geom_map for polygon maps
+  expand_limits(x = caribbean$long, y = caribbean$lat) +  # Important for proper map scaling
+  coord_sf(crs = 4326) + # Set coordinate system (WGS 84 - common for maps)
+  scale_fill_manual(values = c("yes" = "red", "no" = "cornflowerblue"), # Customize highlight color
+                    labels = c("yes" = highlight_country, "no" = "Other Caribbean Islands"), # Customize legend labels
+                    name = "Country") +  # Customize legend title
+  labs(title = "Map of the Caribbean with Highlighted Country",  # Add a title
+       subtitle = paste("Highlighted:", highlight_country)) + # Add a subtitle
+  theme_void() + # Use a clean theme
+  theme(legend.position = "bottom",  # Adjust legend position
+        panel.background = element_blank(), # Remove plot background
+        panel.grid = element_blank(), # Remove grid lines
+        axis.text = element_blank(), # Remove axis text
+        axis.ticks = element_blank()) # Remove axis ticks
+```
+
+</center>
+
+
+# Option 2
+
+Another option in the iterative process. Not quite suitable.
+
+<center>
+
+```{r}
+# Get world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Filter for the Caribbean region (adjust bounding box as needed)
+caribbean <- st_crop(world, xmin = -85, xmax = -60, ymin = 5, ymax = 25)
+
+# Get specific data for Grenada (you might need to refine this based on your data source)
+grenada <- caribbean[caribbean$admin == "Grenada", ]  # Assumes 'admin' column exists
+
+# If you don't have a direct 'admin' match, you might need to use a different approach
+# For example, if you have ISO codes:
+# grenada <- caribbean[caribbean$iso_a3 == "GRD", ]
+
+# Create the map
+ggplot() +
+  geom_sf(data = caribbean, fill = "lightgray", color = "black", size = 0.2) + # Base map
+  geom_sf(data = grenada, fill = "darkgreen", color = "black", size = 0.2) + # Highlight Grenada
+  coord_sf(xlim = c(-62, -61), ylim = c(12, 13), expand = FALSE) +  # Zoom in on Grenada specifically if needed. Adjust as necessary.
+  labs(title = "Eastern Caribbean with Grenada Highlighted",
+       caption = "Source: Natural Earth") +
+  theme_void() + # Or any other theme you prefer
+  theme(plot.background = element_rect(fill = my_palette2[9],
+                                       color = NA),
+        panel.background = element_rect(fill = my_palette2[11],
+                                        color = NA))
+```
+
+</center>
+
+# Option 3
+
+<center>
+
+```{r}
+library(ggmap)
+library(ggrepel)
+library(maps)
+
+caribbean_map <- map_data("world") %>%
+  filter(region %in% c("Antigua and Barbuda", "Barbados", "Dominica", "Grenada", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Trinidad and Tobago")) # Add all relevant islands
+
+grenada_map <- caribbean_map %>%
+  filter(region == "Grenada")
+
+ggplot() +
+  geom_map(data = caribbean_map, map = map_data("world"),
+           aes(map_id = region),
+           fill = "aliceblue", color = "black", size = 0.2) +
+   geom_map(data = grenada_map, map = map_data("world"),
+          aes(map_id = region),
+          fill = "forestgreen", color = "black", size = 0.2) +
+  coord_sf(xlim = c(-62, -61), ylim = c(12, 13), expand = FALSE) +  # Zoom in on Grenada
+   labs(title = "Eastern Caribbean with Grenada Highlighted",
+        caption = "Source: maps package") +
+  theme_void()+
+  theme(plot.background = element_rect(fill = my_palette2[17],
+                                       color = NA),
+        panel.background = element_rect(fill = my_palette2[17],
+                                        color = NA))
+```
+
+</center>
+
+
+# Option 4 
+
+While the current map of the ECCU region isn't yet the flawless cartographic representation I envision, it stands as the most aesthetically pleasing and geographically coherent output achieved after months of persistent effort. Although minor imperfections remain, particularly concerning the precise sizing of individual islands and the unintentional inclusion of mainland territory to the south, the overall visual balance and regional depiction are a significant improvement over previous attempts. For the immediate purposes of this analysis, this rendition offers a satisfactory visual context, and I intend to proceed with its inclusion. The pursuit of absolute perfection in its detail continues as an ongoing endeavor, with further refinements planned to address the remaining nuances in map size that could fit a wider frame.
+
+If you have any tips, please share with me!
+
+<center>
+
+```{r}
+# Get world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Filter for the Caribbean region (adjust bounding box as needed)
+caribbean <- st_crop(world, xmin = -85, xmax = -60, ymin = 5, ymax = 25)
+
+# Choose the island to highlight and label (e.g., "Grenada")
+highlight_island <- "Dominica"  # Change this to the island you want
+
+# Extract the highlighted island's data
+highlighted_data <- caribbean[caribbean$admin == highlight_island, ]
+
+# Create the map
+ggplot() +
+  geom_sf(data = caribbean, fill = "skyblue", color = "black", size = 0.2) + # Base map
+  geom_sf(data = highlighted_data, fill = "orange", color = "black", size = 0.2) + # Highlighted island
+
+# Add text label (using ggrepel for better placement)
+geom_text_repel(data = highlighted_data, 
+                   aes(label = admin, geometry = geometry), # Label with island name
+                   stat = "sf_coordinates", # Important for sf objects
+                   min.segment.length = 0, # Adjust to control label connection lines
+                   box.padding = 0.5, # Adjust padding around label
+                   point.padding = 0.5, # Adjust padding around label
+                   segment.curvature = -0.1, # Adjust curvature of label lines
+                   nudge_x = 0, # Adjust horizontal nudge
+                   nudge_y = 0, # Adjust vertical nudge
+                   size = 4, # Adjust font size
+                   color = "black") +  # Adjust color
+  coord_sf(xlim = c(-65, -60), ylim = c(10, 20), expand = TRUE) +  # Zoom in, adjust as needed
+  labs(title = "Eastern Caribbean Islands",
+       caption = "Source: Natural Earth") +
+  theme_void() +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "cm"),
+        axis.text = element_blank(), # Remove axis text
+        axis.ticks = element_blank(), # Remove axis ticks
+        plot.background = element_rect(fill = my_palette2[17],
+                                       color = NA),
+        panel.background = element_rect(fill = my_palette2[17],
+                                        color = NA))
+```
+
+</center>
+
