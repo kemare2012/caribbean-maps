@@ -222,28 +222,29 @@ highlighted_data <- caribbean[caribbean$admin == highlight_island, ]
 
 # Create the map
 ggplot() +
-  geom_sf(data = caribbean, fill = "skyblue", color = "black", size = 0.2) + # Base map
-  geom_sf(data = highlighted_data, fill = "orange", color = "black", size = 0.2) + # Highlighted island
+  geom_sf(data = caribbean, fill = my_palette2[2], color = "black", size = 0.2) + # Base map
+  geom_sf(data = highlighted_data, fill = my_palette2[5], color = "black", size = 0.2) + # Highlighted island
 
 # Add text label (using ggrepel for better placement)
 geom_text_repel(data = highlighted_data, 
                    aes(label = admin, geometry = geometry), # Label with island name
                    stat = "sf_coordinates", # Important for sf objects
                    min.segment.length = 0, # Adjust to control label connection lines
-                   box.padding = 0.5, # Adjust padding around label
+                   box.padding = 0.0, # Adjust padding around label
                    point.padding = 0.5, # Adjust padding around label
                    segment.curvature = -0.1, # Adjust curvature of label lines
                    nudge_x = 0, # Adjust horizontal nudge
                    nudge_y = 0, # Adjust vertical nudge
                    size = 4, # Adjust font size
                    color = "black") +  # Adjust color
-  coord_sf(xlim = c(-65, -60), ylim = c(10, 20), expand = TRUE) +  # Zoom in, adjust as needed
+  coord_sf(xlim = c(-70, -60), ylim = c(10, 20), expand = TRUE) +  # Zoom in, adjust as needed - will expand map
   labs(title = "Eastern Caribbean Islands",
        caption = "Source: Natural Earth") +
   theme_void() +
   theme(plot.margin = unit(c(0, 0, 0, 0), "cm"),
         axis.text = element_blank(), # Remove axis text
         axis.ticks = element_blank(), # Remove axis ticks
+        plot.title = element_text(colour = "black", size = 12, hjust = 0.5),
         plot.background = element_rect(fill = my_palette2[17],
                                        color = NA),
         panel.background = element_rect(fill = my_palette2[17],
